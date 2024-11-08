@@ -11,15 +11,19 @@ pub struct Fragment {
     pub position: Vec2,
     pub color: Color,
     pub depth: f32,
+    pub normal: Vec3,
+    pub intensity: f32
 }
 
 
 impl Fragment {
-    pub fn new(x: f32, y: f32, color: Color, depth: f32) -> Self {
+    pub fn new(x: f32, y: f32, color: Color, depth: f32, normal:Vec3, intensity: f32) -> Self {
         Fragment {
             position: Vec2::new(x, y),
             color,
             depth,
+            normal,
+            intensity
         }
     }
 }
@@ -93,23 +97,17 @@ pub fn triangle_fill(v1: &Vertex, v2:&Vertex ,v3:&Vertex, uniforms: &Uniforms)->
                 if w1>=0.0 && w1 <=1.0 &&
                 w2>=0.0 && w2 <=1.0 &&
                 w3>=0.0 && w3 <=1.0 {
-                    let color = flat_shading(v1.transformed_normal, uniforms.light_dir);
+                    let color = Color::new(100, 100, 100);
                     let depth = a.z*w1 +b.z*w2 + c.z*w3;
-                    
+                    let normal = v1.transformed_normal*w1+v2.transformed_normal *w2 + v3.transformed_normal*w3;
+                    let normal = normal.normalize();
+                    let intensity = dot(&normal, &uniforms.light_dir);
                     fragments.push(
-                        Fragment::new(x as f32, y as f32, color, depth)
+                        Fragment::new(x as f32, y as f32, color, depth, normal, intensity)
                     );
                 }
             // } 
         }
     }
     fragments
-}
-
-pub fn flat_shading(_normal:Vec3 ,light_dir: Vec3) ->Color{
-    let normal = _normal.normalize();
-    let intensity = dot(&normal,&light_dir).max(0.3);
-    let base_color = Color::new(100,100,100);
-    let lit_color = base_color*intensity;
-    lit_color
 }

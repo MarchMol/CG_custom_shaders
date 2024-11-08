@@ -1,11 +1,15 @@
 use crate::fragments::{triangle_fill, Fragment};
 use crate::vertex::Vertex;
-use crate::{screen::framebuffer::Framebuffer, shader::vertex_shader};
+use crate::{screen::framebuffer::Framebuffer, shader::{vertex_shader, combined_blend_shader}};
 use nalgebra_glm::{Mat4, Vec3};
 
 pub struct Uniforms {
     pub model_matrix: Mat4,
+    pub view_matrix: Mat4,
+    pub projection_matrix: Mat4,
+    pub viewport_matrix: Mat4,
     pub light_dir: Vec3,
+    pub time: u32
 }
 
 pub fn render(framebuffer: &mut Framebuffer, uniforms: &Uniforms, vertex_array: &[Vertex]) {
@@ -40,8 +44,8 @@ pub fn render(framebuffer: &mut Framebuffer, uniforms: &Uniforms, vertex_array: 
     for fragment in fragments {
         let x = fragment.position.x as usize;
         let y = fragment.position.y as usize;
-                
-        let color = fragment.color.to_hex();
+        let shaded_color = combined_blend_shader(&fragment, "add");
+        let color = shaded_color.to_hex();
         framebuffer.set_current_color(color);
         framebuffer.point(x, y, fragment.depth);
 

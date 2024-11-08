@@ -1,10 +1,11 @@
 use std::time::Duration;
 use minifb::{Key, Window, WindowOptions};
-use nalgebra_glm::{Mat4, Vec3};
+use nalgebra_glm::{Mat4, Vec3, look_at, perspective};
 use screen::framebuffer;
 use obj::Obj;
 use uniforms::Uniforms;
 use std::f32::consts::PI;
+use camera::Camera;
 
 mod screen;
 mod vertex;
@@ -13,6 +14,7 @@ mod obj;
 mod uniforms;
 mod shader;
 mod bounding_box;
+mod camera;
 
 fn main() {
     // Window
@@ -39,11 +41,19 @@ fn main() {
     let vertex_array = object.get_vertex_array();
     let light_dir= Vec3::new(1.0, 3.0, -4.0);
 
-    // View Variables
-    let mut translation = Vec3::new(300.0, 200.0, 0.0);
-    let mut rotation = Vec3::new(0.0, 0.0, 0.0);
-    let mut scale = 100.0f32;
+    // Model
+    let translation = Vec3::new(0.0, 0.0, 0.0);
+    let rotation = Vec3::new(0.0, 0.0, 0.0);
+    let scale = 1.0f32;
 
+    // Camera
+    let mut camera = Camera::new(
+        Vec3::new(0.0, 10.0, 5.0),
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 1.0, 0.0)
+    );
+
+    let mut frame_counter = 0;
     // Main Window Loop:
     while window.is_open() {
         // Closing listener
@@ -53,13 +63,18 @@ fn main() {
         }
 
         // Input listener
-        handle_input(&window, &mut translation, &mut rotation, &mut scale);
+        handle_input(&window, &mut camera);
         let model_matrix = create_model_matrix(translation, scale, rotation);
-        let uniforms= Uniforms { model_matrix, light_dir };
+        let view_matrix = create_view_matrix(camera.eye, camera.center, camera.up);
+        let projection_matrix = create_perspective_matrix(window_width as f32, window_height as f32);
+        let viewport_matrix = create_viewport_matrix(framebuffer_width as f32, framebuffer_height as f32);
+        let uniforms = Uniforms { model_matrix, view_matrix, projection_matrix, viewport_matrix, light_dir, time: frame_counter };
+
+        
         
         // Rendering stage
         uniforms::render(&mut framebuffer, &uniforms, &vertex_array);
-        
+        frame_counter+=1;
         window
             .update_with_buffer(
                 &framebuffer.color_array_to_u32(),
@@ -112,41 +127,70 @@ fn create_model_matrix(
     transform_matrix * rotation_matrix
 }
 
-fn handle_input(window: &Window, translation: &mut Vec3, rotation: &mut Vec3, scale: &mut f32) {
-    if window.is_key_down(Key::Right) {
-        translation.x += 5.0;
-    }
+fn create_view_matrix(eye: Vec3, center: Vec3, up: Vec3) -> Mat4 {
+    look_at(&eye, &center, &up)
+}
+
+fn create_perspective_matrix(window_width: f32, window_height: f32) -> Mat4 {
+    let fov = 45.0 * PI / 180.0;
+    let aspect_ratio = window_width / window_height;
+    let near = 0.1;
+    let far = 1000.0;
+
+    perspective(fov, aspect_ratio, near, far)
+}
+
+fn create_viewport_matrix(width: f32, height: f32) -> Mat4 {
+    Mat4::new(
+        width / 2.0, 0.0, 0.0, width / 2.0,
+        0.0, -height / 2.0, 0.0, height / 2.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    )
+}
+
+fn handle_input(window: &Window, camera: &mut Camera) {
+    let movement_speed = 1.0;
+    let rotation_speed = PI/50.0;
+    let zoom_speed = 0.1;
+   
+    //  camera orbit controls
     if window.is_key_down(Key::Left) {
-        translation.x -= 5.0;
+      camera.orbit(rotation_speed, 0.0);
     }
-    if window.is_key_down(Key::Up) {
-        translation.y -= 5.0;
-    }
-    if window.is_key_down(Key::Down) {
-        translation.y += 5.0;
-    }
-    if window.is_key_down(Key::S) {
-        *scale += 2.0;
-    }
-    if window.is_key_down(Key::A) {
-        *scale -= 2.0;
-    }
-    if window.is_key_down(Key::Q) {
-        rotation.x -= PI / 20.0;
+    if window.is_key_down(Key::Right) {
+      camera.orbit(-rotation_speed, 0.0);
     }
     if window.is_key_down(Key::W) {
-        rotation.x += PI / 20.0;
+      camera.orbit(0.0, -rotation_speed);
+    }
+    if window.is_key_down(Key::S) {
+      camera.orbit(0.0, rotation_speed);
+    }
+
+    // Camera movement controls
+    let mut movement = Vec3::new(0.0, 0.0, 0.0);
+    if window.is_key_down(Key::A) {
+      movement.x -= movement_speed;
+    }
+    if window.is_key_down(Key::D) {
+      movement.x += movement_speed;
+    }
+    if window.is_key_down(Key::Q) {
+      movement.y += movement_speed;
     }
     if window.is_key_down(Key::E) {
-        rotation.y -= PI / 20.0;
+      movement.y -= movement_speed;
     }
-    if window.is_key_down(Key::R) {
-        rotation.y += PI / 20.0;
+    if movement.magnitude() > 0.0 {
+      camera.move_center(movement);
     }
-    if window.is_key_down(Key::T) {
-        rotation.z -= PI / 20.0;
+
+    // Camera zoom controls
+    if window.is_key_down(Key::Up) {
+      camera.zoom(zoom_speed);
     }
-    if window.is_key_down(Key::Y) {
-        rotation.z += PI / 20.0;
+    if window.is_key_down(Key::Down) {
+      camera.zoom(-zoom_speed);
     }
 }

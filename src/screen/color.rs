@@ -31,6 +31,52 @@ impl Color {
     pub fn to_hex(&self) -> u32 {
         ((self.r as u32)<< 16) | ((self.g as u32) << 8) | (self.b as u32)
     }
+    pub fn lerp(&self, other: &Color, t: f32) -> Self {
+        let t = t.clamp(0.0, 1.0);
+        Color {
+          r: (self.r as f32 + (other.r as f32 - self.r as f32) * t).round() as u8,
+          g: (self.g as f32 + (other.g as f32 - self.g as f32) * t).round() as u8,
+          b: (self.b as f32 + (other.b as f32 - self.b as f32) * t).round() as u8,
+        }
+      }
+
+      pub fn is_black(&self) -> bool {
+        self.r == 0 && self.g == 0 && self.b == 0
+    }
+
+    // New blend mode methods
+    pub fn blend_normal(&self, blend: &Color) -> Color {
+        if blend.is_black() { *self } else { *blend }
+    }
+
+    pub fn blend_multiply(&self, blend: &Color) -> Color {
+        Color{
+            r: ((self.r as f32 * blend.r as f32) / 255.0) as u8,
+            g: ((self.g as f32 * blend.g as f32) / 255.0) as u8,
+            b: ((self.b as f32 * blend.b as f32) / 255.0) as u8
+        }
+    }
+
+    pub fn blend_add(&self, blend: &Color) -> Color {
+        Color{
+            r: (self.r as u16 + blend.r as u16).min(255) as u8,
+            g: (self.g as u16 + blend.g as u16).min(255) as u8,
+            b: (self.b as u16 + blend.b as u16).min(255) as u8
+        }
+    }
+
+    
+  pub fn blend_subtract(&self, blend: &Color) -> Color {
+    if blend.is_black() {
+      *self
+    } else {
+      Color {
+        r: self.r.saturating_sub(blend.r),
+        g: self.g.saturating_sub(blend.g),
+        b: self.b.saturating_sub(blend.b)
+      }
+    }
+  }
 }
 
 impl std::ops::Add for Color{
