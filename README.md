@@ -10,7 +10,7 @@ As a note, its worth mentioning that some liberties were taken for aesthetic pur
 ### 1. Sun
 Press the "1" key to sho
 w the this planet
-![The Sun](./assets/screenshots/sun.png)
+![The Sun](./assets/screenshots/sun.gif)
 ### 2. Mercury
 Press the "1" key to show the this planet
 ![Mercury](./assets/screenshots/mercury.png)
@@ -19,10 +19,10 @@ Press the "1" key to show the this planet
 ![venus](./assets/screenshots/venus.png)
 ### 4. Earth
 Press the "1" key to show the this planet
-![Earth](./assets/screenshots/earth.png)
+![Earth](./assets/screenshots/earth.gif)
 ### 5. Jupiter
 Press the "1" key to show the this planet
-![Jupiter](./assets/screenshots/jupiter.png)
+![Jupiter](./assets/screenshots/jupiter.gif)
 ### 6. Saturn
 Press the "1" key to show the this planet
 ![Saturn](./assets/screenshots/saturn.png)
