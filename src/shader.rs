@@ -93,10 +93,24 @@ pub fn earth_shader(fragment: &Fragment, uniforms: &Uniforms) -> Color{
     let map_color = create_map(fragment, uniforms);
     let cloud = cloud_shader(fragment, uniforms);
     let final_color = map_color.blend_add(&cloud);
-
+    let final_color = moon_shader(fragment, uniforms, final_color);
     final_color*(fragment.intensity.min(2.0).max(0.05))
 }
 
+fn moon_shader(fragment: &Fragment, uniforms: &Uniforms, color:Color)-> Color{
+    let x = fragment.position.x;
+    let y = fragment.position.y;
+    let distance = ((x-680.0)*(x-680.0) + (y-250.0)*(y-250.0)).sqrt();
+
+    if distance < 60.0 {
+        let t = uniforms.time as f32;
+        let noise = (uniforms.noise.get_noise_2d(
+            (x+t)*20.0,y*20.0)+1.0)/2.0;
+        Color::new(128, 128, 128)*(noise*0.5 +0.5)
+    } else{
+        color
+    }
+}
 fn create_map(fragment: &Fragment, uniforms: &Uniforms) -> Color{
     let zoom = 0.5;
     let x = fragment.position.x;

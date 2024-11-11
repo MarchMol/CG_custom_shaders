@@ -40,11 +40,16 @@ fn main() {
     let frame_delay = Duration::from_millis(16);
 
     // Obj
-    let planet =  Obj::load("./sphere.obj").expect("Failed to load obj");
+    // Normal Planet
+    let planet =  Obj::load("./assets/3d_models/sphere.obj").expect("Failed to load obj");
     let vertex_array = planet.get_vertex_array();
-    let planet_ring = Obj::load("./sphere_ring.obj").expect("Failed to load obj");
-    let light_dir= Vec3::new(1.0, 3.0, -4.0);
+    // Planet with Ring
+    let planet_ring = Obj::load("./assets/3d_models/sphere_ring.obj").expect("Failed to load obj");
     let vertex_array_ring = planet_ring.get_vertex_array();
+    // Planet with moon
+    let planet_moon = Obj::load("./assets/3d_models/sphere_moon.obj").expect("Failed to load obj");
+    let vertex_array_moon = planet_moon.get_vertex_array();
+    let light_dir= Vec3::new(1.0, 3.0, -4.0);
 
     // Model
     let translation = Vec3::new(0.0, 0.0, 0.0);
@@ -53,13 +58,13 @@ fn main() {
 
     // Camera
     let mut camera = Camera::new(
-        Vec3::new(2.0, 0.0, -2.0),
+        Vec3::new(0.0, 1.0, -3.0),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 1.0, 0.0)
     );
 
     let mut frame_counter = 0;
-    let noise = planet_noise::get_neptune_noise();
+    let noise = planet_noise::get_earth_noise();
     let projection_matrix = create_perspective_matrix(window_width as f32, window_height as f32);
         let viewport_matrix = create_viewport_matrix(framebuffer_width as f32, framebuffer_height as f32);
     let mut uniforms = Uniforms { 
@@ -70,7 +75,7 @@ fn main() {
       light_dir, 
       time: 0, 
       noise,
-      planet: 7
+      planet: 4
     };
     // Main Window Loop:
     while window.is_open() {
@@ -90,7 +95,8 @@ fn main() {
         // Rendering stage
         if uniforms.planet == 6{
           uniforms::render(&mut framebuffer, &uniforms, &vertex_array_ring);
-          
+        }else if uniforms.planet == 4{
+          uniforms::render(&mut framebuffer, &uniforms, &vertex_array_moon);
         } else{
           uniforms::render(&mut framebuffer, &uniforms, &vertex_array);
         }
