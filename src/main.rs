@@ -1,11 +1,13 @@
 use std::time::Duration;
 use minifb::{Key, Window, WindowOptions};
-use nalgebra_glm::{Mat4, Vec3, look_at, perspective};
+use nalgebra_glm::{look_at, perspective, Mat4, Vec1, Vec3};
 use screen::framebuffer;
 use obj::Obj;
 use uniforms::Uniforms;
 use std::f32::consts::PI;
 use camera::Camera;
+use rand;
+use fastnoise_lite::{self, CellularDistanceFunction, DomainWarpType, FastNoiseLite, FractalType, NoiseType};
 
 mod screen;
 mod vertex;
@@ -15,11 +17,12 @@ mod uniforms;
 mod shader;
 mod bounding_box;
 mod camera;
+mod planet_noise;
 
 fn main() {
     // Window
     let window_width = 800;
-    let window_height = 600;
+    let window_height = 900;
     let mut window = Window::new(
         "3D modeling - Render Pipeline",
         window_width,
@@ -37,9 +40,11 @@ fn main() {
     let frame_delay = Duration::from_millis(16);
 
     // Obj
-    let object =  Obj::load("./spaceship.obj").expect("Failed to load obj");
-    let vertex_array = object.get_vertex_array();
+    let planet =  Obj::load("./sphere.obj").expect("Failed to load obj");
+    let vertex_array = planet.get_vertex_array();
+    let planet_ring = Obj::load("./sphere_ring.obj").expect("Failed to load obj");
     let light_dir= Vec3::new(1.0, 3.0, -4.0);
+    let vertex_array_ring = planet_ring.get_vertex_array();
 
     // Model
     let translation = Vec3::new(0.0, 0.0, 0.0);
@@ -48,12 +53,25 @@ fn main() {
 
     // Camera
     let mut camera = Camera::new(
-        Vec3::new(0.0, 10.0, 5.0),
+        Vec3::new(2.0, 0.0, -2.0),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 1.0, 0.0)
     );
 
     let mut frame_counter = 0;
+    let noise = planet_noise::get_neptune_noise();
+    let projection_matrix = create_perspective_matrix(window_width as f32, window_height as f32);
+        let viewport_matrix = create_viewport_matrix(framebuffer_width as f32, framebuffer_height as f32);
+    let mut uniforms = Uniforms { 
+      model_matrix: Mat4::identity(), 
+      view_matrix: Mat4::identity(),
+      projection_matrix, 
+      viewport_matrix, 
+      light_dir, 
+      time: 0, 
+      noise,
+      planet: 7
+    };
     // Main Window Loop:
     while window.is_open() {
         // Closing listener
@@ -64,16 +82,19 @@ fn main() {
 
         // Input listener
         handle_input(&window, &mut camera);
-        let model_matrix = create_model_matrix(translation, scale, rotation);
-        let view_matrix = create_view_matrix(camera.eye, camera.center, camera.up);
-        let projection_matrix = create_perspective_matrix(window_width as f32, window_height as f32);
-        let viewport_matrix = create_viewport_matrix(framebuffer_width as f32, framebuffer_height as f32);
-        let uniforms = Uniforms { model_matrix, view_matrix, projection_matrix, viewport_matrix, light_dir, time: frame_counter };
+        uniforms.model_matrix = create_model_matrix(translation, scale, rotation);
+        uniforms.view_matrix = create_view_matrix(camera.eye, camera.center, camera.up);
+        uniforms.time = frame_counter;
 
-        
-        
+        change_planet(&window, &mut uniforms);
         // Rendering stage
-        uniforms::render(&mut framebuffer, &uniforms, &vertex_array);
+        if uniforms.planet == 6{
+          uniforms::render(&mut framebuffer, &uniforms, &vertex_array_ring);
+          
+        } else{
+          uniforms::render(&mut framebuffer, &uniforms, &vertex_array);
+        }
+      
         frame_counter+=1;
         window
             .update_with_buffer(
@@ -85,6 +106,7 @@ fn main() {
         std::thread::sleep(frame_delay);
     }
 }
+
 
 fn create_model_matrix(
     translation: Vec3,
@@ -147,6 +169,37 @@ fn create_viewport_matrix(width: f32, height: f32) -> Mat4 {
         0.0, 0.0, 1.0, 0.0,
         0.0, 0.0, 0.0, 1.0
     )
+}
+
+fn change_planet(window: &Window, uniforms: &mut Uniforms){
+  if window.is_key_down(Key::Key1) {
+    uniforms.planet = 1; // Sun
+    uniforms.noise = planet_noise::get_sun_noise();
+  }
+  if window.is_key_down(Key::Key2) {
+    uniforms.planet = 2; // Mercury
+    uniforms.noise = planet_noise::get_mercury_noise();
+  }
+  if window.is_key_down(Key::Key3) {
+    uniforms.planet = 3; // Venus
+    uniforms.noise = planet_noise::get_venus_noise();
+  }
+  if window.is_key_down(Key::Key4) {
+    uniforms.planet = 4; // Earth
+    uniforms.noise = planet_noise::get_earth_noise();
+  }
+  if window.is_key_down(Key::Key5) {
+    uniforms.planet = 5; // Jupiter
+    uniforms.noise = planet_noise::get_jupiter_noise();
+  }
+  if window.is_key_down(Key::Key6) {
+    uniforms.planet = 6; // Saturn
+    uniforms.noise = planet_noise::get_saturn_noise();
+  }
+  if window.is_key_down(Key::Key7) {
+    uniforms.planet = 7; // Neptune
+    uniforms.noise = planet_noise::get_neptune_noise();
+  }
 }
 
 fn handle_input(window: &Window, camera: &mut Camera) {

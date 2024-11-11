@@ -43,6 +43,13 @@ impl Color {
       pub fn is_black(&self) -> bool {
         self.r == 0 && self.g == 0 && self.b == 0
     }
+    pub fn blend_screen(&self, blend: &Color) -> Color {
+        Color{
+            r: 255 - ((255 - self.r as u16) * (255 - blend.r as u16) / 255) as u8,
+            g: 255 - ((255 - self.g as u16) * (255 - blend.g as u16) / 255) as u8,
+            b: 255 - ((255 - self.b as u16) * (255 - blend.b as u16) / 255) as u8
+        }
+    }
 
     // New blend mode methods
     pub fn blend_normal(&self, blend: &Color) -> Color {
